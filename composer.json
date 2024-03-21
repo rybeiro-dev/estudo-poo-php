@@ -1,0 +1,17 @@
+{
+    "name": "fabioribeiro/estudo_poo",
+    "description": "Conhecimento relavante de PHP Orientado a Objetos",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Fabioribeiro\\EstudoPoo\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Fabio Ribeiro",
+            "email": "fabioribeiro.developer@gmail.com"
+        }
+    ],
+    "require": {}
+}
