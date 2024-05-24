@@ -284,6 +284,476 @@ $objeto->outroMetodo(); // Saída: Este é outro método da classe.
 
 ```
 
+### StdClass
+StdClass é um objeto dinâmico do PHP. No StdClass criamos apenas propriedades públicas.
+
+```php
+$dinamicObject = new StdClass();
+$dinamicObject->name = "Fabio";
+$dinamicObject->gender = 44;
+
+dump($dinamicObject);
+```
+
+Convertendo um array em um _StdClass_
+```php
+$arr = ['name' => 'Fabio', 'gender' => 44];
+gettype($arr);
+# a conversão é um simples casting
+$arr = (object) ['name' => 'Fabio', 'gender' => 44];
+gettype($arr);
+```
+
+### DTO - Data Transfer Object
+Quando se trabalha com APIs de terceiros é uma boa prática criar um diretório _DataTransferObject_ e implementar a classe para trabalhar com os dados.
+
+```php
+use stdclass;
+
+class PersonDTO
+{
+	public function __construct(private stdclass $properties, private string $name = '', private string $gender = '')
+	{
+		$this->name = $properties->name;
+		$this->gender = $properties->gender;
+	}
+
+	public function getName():string
+	{
+		return $this->name;
+	}
+
+	public function getGender(): string
+	{
+		return $this->gender;
+	}
+}
+
+$json = '{"name":"Fabio", "gender":"male"}';
+
+$person = PersonDTO(json_decode($json));
+
+dump($person->getName());
+dump($person->getGender());
+```
+
+### Classes Anônimas
+Uma classe anônima é útil para criar uma classe para criar propriedades e métodos. Também é possível extender de outras classe, usar implementações.
+
+```php
+$person = new class(){
+	public function __construct(private stdclass $properties, private string $name = '', private string $gender = '')
+	{
+		$this->name = $properties->name;
+		$this->gender = $properties->gender;
+	}
+
+	public function getName():string
+	{
+		return $this->name;
+	}
+
+	public function getGender(): string
+	{
+		return $this->gender;
+	}
+}
+
+$json = '{"name":"Fabio", "gender":"male"}';
+
+$person = PersonDTO(json_decode($json));
+
+dump($person->getName());
+dump($person->getGender());
+
+```
+
+### InstanceOf
+Para verificar se uma instância é de uma classe pode utilizar o _instanceOf_
+Verificando uma classe com _instanceOf_
+
+```php
+$person = new Person();
+
+if ($person instanceOf Person) echo "yes";
+
+```
+
+### Métodos estáticos
+Para definir um método estático usar a palavra reservada _static_ no cabeçalho.
+
+```php
+class ViaCepService
+{
+	public static function handle(string $cep): array
+	{
+		return Http::get("viacep.com.br/ws/{$cep}/json/")->json();
+	}
+}
+
+dump( ViaCepService::handle('06810040') );
+```
+
+### ENUM
+Em PHP, ENUM é uma estrutura de dados que representa um conjunto fixo de valores nomeados. Enum pode ser usado para definir estados.
+
+Enum é uma instância de _Sington_
+
+
+##### Conceito com PHP
+
+```php
+
+enum Naipe{
+	case Copas;
+	case Ouros;
+	case Paus;
+	case Espadas;
+}
+
+Naipe::Copas->name
+```
+
+_BackedEnum_ aceita string ou integer
+
+```php
+enum Naipe: string
+{
+	case Copas = 'C';
+	case Ouros = 'O';
+	case Paus = 'P';
+	case Espadas = 'E';
+}
+
+Naipe::Espadas->value;
+```
+
+É possível utlizar _implements_ para Enums.
+
+```php
+interface Colorido
+{
+	public function cor(): string;
+}
+
+
+enum Naipe: string implements Colorido
+{
+	case Copas = 'C';
+	case Ouros = 'O';
+	case Paus = 'P';
+	case Espadas = 'E';
+
+	public function cor(): string
+	{
+		return match($this){
+			Naipe::Copas, Naipe::Ouros => 'Vermelho',
+			Naipe::Paus, Naipe::Espadas => 'Preto',
+		}
+	}
+}
+
+function pintar(ColoridoInterface $colorido)
+{
+	echo "Cor do Naipe: {$colorido->cor()}";
+}
+
+pintar(Naipe::Ouro);
+
+```
+
+Para retornar todos os casos de uma _Enum_, tem o método _cases()_
+```php
+enum Colors
+{
+	case Red;
+	case Blue;
+	case Green;
+}
+
+print_r(Colors::cases());
+```
+
+##### Conceito com Laravel
+Organizar as _Enums_ no diretório. Usar _Enums_ ao invés de uma tabela de banco de dados.
+
+```php
+
+enum StateEnum: string
+{
+	case Ativo = 'ativo';
+	case Inativo = 'inativo';
+}
+
+```
+
+Suponha que temos uma classe Post; Fazer o _casting_ no _Model_.
+
+```php
+class Post extends Model
+{
+	protected $casts = ['state' => StateEnum::Class]
+}
+
+
+echo Post::first()->state->name . PHP_EOL;
+echo Post::first()->state->value . PHP_EOL;
+
+```
+
+> IMPORTANTE: Na _Migration_ de _Post_ pode utilizar o tipo _string_ se utilizar o tipo _enum_ todos os valores deve ser definidos na tabela.
+
+```php
+# usando string
+$table->string('state')->default('ativo');
+
+# usando enum
+$table->enum('state', ['ativo', 'inativo']);
+```
+
+> *Pode acessar um _Enum_ direto no _Route_* através 
+
+
+###  Namespaces e Autoload no padrão PSR-4
+Namespace é uma maneira de encapsular itens, como classes, interfaces, funções e constantes, em grupos distintos, evitando conflitos de nomes e fornecendo uma forma de organizar e estruturar o código de uma aplicação.
+
+O padrão PSR-4 (PHP Standards Recommendation 4) é um conjunto de diretrizes estabelecidas pela PHP-FIG (PHP Framework Interop Group) para padronizar a autoloading de classes em PHP. O objetivo principal do PSR-4 é facilitar a inclusão automática de classes (autoloading) em um projeto PHP, eliminando a necessidade de incluir manualmente arquivos de classe.
+
+Em projetos crie o seu pacote do composer para encapsular (empacotar) o seu projeto e suas dependências.
+
+```php
+composer init # Algumas perguntas serão feitas para o projeto
+```
+
+Para ter um namespace simplificado altere no composer.json para App. E execute o comando ```composer dumpautoload -o``` para recarregar as classes do projeto. É necessário alterar manualmente nas classes.
+
+```json
+"autoload":{
+	"psr-4":{
+		"App\\": "src/"
+	}
+}
+```
+
+### Exceptions
+
+
+## Métodos Mágicos
+
+### \__construct() e \__destruct()
+
+Todos os métodos no PHP que começam com duplo underline é considerado um método mágico.
+```php
+# construtor com Property Promotion
+public function __construct(public string $name, public int $age = 0)
+{
+	parent::__construct(); # passar parametro para a classe pai
+}
+
+# Utilizado em caso que precisa forçar a destruição de algum objeto para liberar memória.
+public function __destruct()
+{
+	echo "Chamou o destruct";
+}
+```
+
+### \__get() e \__set()
+O método _\__get()_ é utilizado para ler propriedades inacessíveis são _protected_, _private_ e inexistentes.
+
+Com o método mágico \__get() conseguimos evitar erros de acesso a propriedades.
+
+```php
+public function __get(string $name): string
+{
+	if(property_exists($this, $name)){
+		return $this->$name;
+	}
+
+	return null;
+}
+```
+
+Com o método mágico \__set() conseguimos criar a propriedade e valor caso ela não exista.
+
+```php
+public function __set(string $name, mixed $value): void
+{
+	$this->$name = $value;
+}
+```
+
+### \__call() e \__callStatic()
+\__call() é chamado ao acessar métodos inacessiveis protegidos ou privados ou inexistente em um contexto de objeto.
+
+Podemos utilizar esse método para muitas coisas, entre elas direcionar mensagens de erro/falhas e utilizar como método dinâmico.
+
+```php
+# sintaxe
+class Invoice
+{
+	public function __call(string $method, array $parameters): mixed
+	{
+		dd($method, $parameters);
+	}
+}
+
+$invoice = new Invoice;
+
+$invoice->process();
+```
+
+Exemplo de sobreescrita
+
+```php
+class Invoice
+{
+	protected function process(float $amount, string $description)
+	{
+		dump('Chamaou', $amount, $description);
+	}
+
+	public function __call(string $method, array $parameters): mixed
+	{
+		if(method_exists($this, $method)){
+			call_user_func_array([$this, $method], $parameters)
+		}
+
+		return $this;
+	}
+}
+
+$invoice = new Invoice;
+
+$invoice->process();
+```
+
+\__callStatic() é invocado em contexto estático de métodos inacessíveis protegidos ou privados ou inexistente.
+
+```php
+class Invoice
+{
+	public function __callStatic(string $method, array $parameters): mixed
+	{
+		# dd($method, $parameters);
+		return (new static)->$method(...$parameters);
+	}
+}
+
+Invoice::process(4,'faturamento');
+```
+
+### \__isset() e \__unset()
+
+Esses métodos mágicos são invocados quando usamos o método isset() ou unset() em um contexto de objeto ao acessar métodos inacessiveis protegidos, privados ou inexistente.
+
+```php
+class Invoice
+{
+	# sintaxe __isset()
+	$properties = [];
+
+	public function __isset(string $key): bool
+	{
+		return array_key_exists($key, $properties);
+	}
+
+
+	# sintaxe __unset()
+	public function __unset(string $key): void
+	{
+		unset($this->properties[$key]);
+	}
+}
+```
+
+### \__toString()
+
+```php
+```
+
+### \__invoke()
+
+O método invoke() é chamado quando usamos um objeto como função.
+
+```php
+class User 
+{
+	public function __invoke(): mixed
+	{
+		dump('Chamada do método __invoke');
+	}
+}
+
+$user = new User;
+
+# chamada de objeto como função
+dd( $user());
+```
+
+## PHP Readonly
+Trata-se um classe somente leitura que garante que as propriedades não sejam manipuladas.
+
+```php
+readonly class PaymentService
+{
+	# utilizando a técnica Constructor Property Promotion.
+	public function __construct(public string $token)
+	{}
+}
+
+$pay = new PaymentService;
+echo $pay->token;
+```
+
+## Value Object - email
+_Value Object_ é um padrão de projeto para criar objetos que representam valores específicos do seu domínio, como email, dinheiro, endereços etc. Esses objetos tem por caracteristicas serem imutáveis, sem identidade, representam um conceito especifico.
+
+```php
+class Email
+{
+	public function __construct(protected string $email)
+	{
+		$this->validate();
+	}
+
+	private function validate(): void
+	{
+		if(!filter_var($this->email, FILTER_VALIDATE_EMAIL)){
+			throw new \DomainException('Formato de email inválido!');
+		}
+	}
+}
+```
+
+## Reflexion Api
+É a api do PHP que da acesso mais profundo aos métodos e propriedades independentemente do encapsulamento.
+
+A _Reflexion Api_ tem vários métodos para acesso aos dados.
+
+```php
+class Cliente
+{
+	public function __construct(private string $telefone){}
+
+	private function telefone(): string
+	{
+		return $this->telefone;
+	}
+}
+
+$reflection = new \ReflectionClass(Cliente::class);
+```
+
+Nas versões igual ou maior que o PHP 8.2 conseguimos evitar o _hacke_ de acesso utilizando _readonly_
+
+```php
+class Pessoa
+{
+	# Simplimente criamos uma variável somente leitura
+	public function __construct(private readonly $nome){}
+}
+```
+
 
 
 
